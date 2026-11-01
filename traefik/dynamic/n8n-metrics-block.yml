@@ -1,0 +1,14 @@
+# Blocks external access to n8n /metrics. Prometheus scrapes http://n8n:5678/metrics internally.
+http:
+  routers:
+    n8n-metrics-block:
+      rule: 'HostRegexp(`^n8n\..+`) && PathPrefix(`/metrics`)'
+      entryPoints: [websecure]
+      priority: 10000
+      service: noop@internal
+      middlewares: [n8n-metrics-deny]
+      tls: {}
+  middlewares:
+    n8n-metrics-deny:
+      ipAllowList:
+        sourceRange: ["127.0.0.2/32"]

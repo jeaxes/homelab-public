@@ -1,0 +1,13 @@
+# OpenSSL config for the private homelab CA. Reads DOMAIN from the environment
+# (same value as in traefik/.env), e.g. DOMAIN=192.0.2.10.nip.io
+[req]
+distinguished_name = dn
+prompt = no
+x509_extensions = v3_ca
+[dn]
+CN = Homelab CA
+[v3_ca]
+basicConstraints = critical, CA:TRUE, pathlen:0
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+nameConstraints = critical, permitted;DNS:$ENV::DOMAIN

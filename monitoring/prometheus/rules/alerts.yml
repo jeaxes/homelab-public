@@ -1,0 +1,53 @@
+groups:
+  - name: host
+    rules:
+      - alert: ZielNichtErreichbar
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.job }} ist nicht erreichbar'
+          description: 'Prometheus erreicht {{ $labels.instance }} ({{ $labels.job }}) seit 2 Minuten nicht.'
+      - alert: HoheCPU
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'CPU über 85 % auf {{ $labels.instance }}'
+          description: 'Aktuell {{ $value | printf "%.0f" }} % seit über 10 Minuten.'
+      - alert: WenigRAM
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'RAM über 90 % auf {{ $labels.instance }}'
+          description: 'Aktuell {{ $value | printf "%.0f" }} % belegt.'
+      - alert: FestplatteVoll
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Festplatte über 85 % auf {{ $labels.instance }}'
+          description: 'Aktuell {{ $value | printf "%.0f" }} % belegt.'
+      - alert: FestplatteVoll
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Festplatte FAST VOLL auf {{ $labels.instance }}'
+          description: 'Aktuell {{ $value | printf "%.0f" }} % belegt!'
+  - name: container
+    rules:
+      - alert: ContainerHoherRAM
+        expr: sum by (name) (container_memory_working_set_bytes{name!=""}) > 1073741824
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Container {{ $labels.name }} braucht über 1 GB RAM'
+          description: 'Aktuell {{ $value | humanize1024 }}B.'

@@ -1,0 +1,39 @@
+# Secrets: never commit
+.env
+.env.*
+*.env
+!.env.example
+!*.env.example
+secrets/
+*.key
+*.pem
+*.p12
+*token*
+traefik/dynamic/dashboard-auth.yml
+ntfy/secrets/
+monitoring/alertmanager/n8n_webhook_secret
+
+# Certificates generated on the server (see docs/operating-handbook.md)
+traefik/ca/ca.crt
+traefik/ca/ca.srl
+traefik/certs/*.crt
+traefik/certs/*.csr
+blackbox/config/ca.crt
+
+# Host-specific probe targets (examples are tracked)
+monitoring/prometheus/targets/*.yml
+
+# Container data
+data/
+*.db
+*.sqlite
+*.log
+*.bak
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db

@@ -1,0 +1,64 @@
+name: Container security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.images.outputs.images }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Discover literal image references without loading deployment secrets
+        id: images
+        shell: python
+        run: |
+          import json, os, pathlib, re
+          images = set()
+          for path in pathlib.Path('.').rglob('docker-compose.y*ml'):
+              for line in path.read_text().splitlines():
+                  if not re.match(r'^\s*image\s*:', line):
+                      continue
+                  value = line.split(':', 1)[1].split(' #', 1)[0].strip().strip('"\'')
+                  if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9._/@:+-]*', value):
+                      raise SystemExit(f'{path}: image must be a literal registry reference')
+                  images.add(value)
+          if not images:
+              raise SystemExit('No Compose images found; refusing an empty scan')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('images=' + json.dumps(sorted(images)) + '\n')
+
+  scan:
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.discover.outputs.images) }}
+    steps:
+      - name: Reject HIGH and CRITICAL container dependencies
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.1
+          scan-type: image
+          image-ref: ${{ matrix.image }}
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '1'
+          format: table
+          timeout: 15m0s
+          cache: false

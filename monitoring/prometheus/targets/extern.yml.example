@@ -1,0 +1,4 @@
+# Copy to extern.yml and list the public websites whose certificates should be checked.
+- targets:
+    - https://example.com
+    - https://www.example.com

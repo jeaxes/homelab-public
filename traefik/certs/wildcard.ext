@@ -1,0 +1,5 @@
+# Extensions for the wildcard server certificate. Reads DOMAIN from the environment.
+basicConstraints=CA:FALSE
+keyUsage=critical,digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+subjectAltName=DNS:*.$ENV::DOMAIN,DNS:$ENV::DOMAIN

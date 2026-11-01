@@ -1,0 +1,13 @@
+tls:
+  certificates:
+    - certFile: /certs/wildcard.crt
+      keyFile: /certs/wildcard.key
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/wildcard.crt
+        keyFile: /certs/wildcard.key
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true

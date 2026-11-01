@@ -1,0 +1,6 @@
+# Copy to intern.yml and replace 192.0.2.10.nip.io with the DOMAIN value from traefik/.env.
+- targets:
+    - https://traefik.192.0.2.10.nip.io
+    - https://gitea.192.0.2.10.nip.io
+    - https://tools.192.0.2.10.nip.io
+    - https://n8n.192.0.2.10.nip.io

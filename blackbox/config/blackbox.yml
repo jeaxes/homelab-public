@@ -1,0 +1,18 @@
+modules:
+  https_extern:            # public websites (regular certificate validation)
+    prober: http
+    timeout: 15s
+    http:
+      preferred_ip_protocol: ip4
+      follow_redirects: true
+      fail_if_not_ssl: true
+      valid_status_codes: [200, 301, 302, 303, 307, 308, 401, 403]
+  https_intern:            # homelab services (validated against the private CA)
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip4
+      fail_if_not_ssl: true
+      valid_status_codes: [200, 301, 302, 303, 307, 308, 401, 403, 404]
+      tls_config:
+        ca_file: /config/ca.crt

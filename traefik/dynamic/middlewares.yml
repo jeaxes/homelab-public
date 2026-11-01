@@ -1,0 +1,23 @@
+http:
+  middlewares:
+    lan-only:
+      ipAllowList:
+        sourceRange:
+          # Go template, rendered by the Traefik file provider. LAN_CIDR comes from traefik/.env.
+          - '{{ env "LAN_CIDR" }}'   # local client network
+          - "10.8.0.0/24"     # WireGuard clients (wg-easy default range)
+          - "172.16.0.0/12"   # Docker networks (e.g. VPN traffic via wg-easy)
+          - "127.0.0.1/32"
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        customFrameOptionsValue: SAMEORIGIN
+        referrerPolicy: same-origin
+        permissionsPolicy: "camera=(), microphone=(), geolocation=()"
+    secure:
+      chain:
+        middlewares:
+          - lan-only
+          - security-headers

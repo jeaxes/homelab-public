@@ -1,0 +1,27 @@
+groups:
+  - name: zertifikate
+    rules:
+      - alert: ZertifikatLaeuftAb
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Zertifikat von {{ $labels.instance }} läuft bald ab'
+          description: 'Noch {{ $value | printf "%.0f" }} Tage gültig.'
+      - alert: ZertifikatLaeuftAb
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 7
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Zertifikat von {{ $labels.instance }} läuft in wenigen Tagen ab!'
+          description: 'Noch {{ $value | printf "%.0f" }} Tage gültig – sofort erneuern.'
+      - alert: WebseiteNichtErreichbar
+        expr: probe_success == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.instance }} ist nicht erreichbar oder das Zertifikat ist ungültig'
+          description: 'Die HTTPS-Prüfung schlägt seit 10 Minuten fehl.'

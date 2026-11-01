@@ -1,0 +1,16 @@
+services:
+  blackbox:
+    image: prom/blackbox-exporter@sha256:ea1c7aa3ef3f307cd03e85f34abb604478ccb90b567fc690da0cd9776da76b13  # pinned 2026-09-30
+    container_name: blackbox
+    restart: unless-stopped
+    read_only: true
+    command: --config.file=/config/blackbox.yml
+    volumes:
+      - ./config:/config:ro
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - monitoring
+networks:
+  monitoring:
+    external: true

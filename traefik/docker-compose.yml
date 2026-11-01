@@ -1,0 +1,70 @@
+services:
+  traefik-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459  # pinned 2026-09-30, version v0.5.0
+    container_name: traefik-socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-socket
+
+  traefik:
+    image: traefik:v3
+    container_name: traefik
+    restart: unless-stopped
+    read_only: true
+    environment:
+      # used by the templated rules in dynamic/middlewares.yml
+      LAN_CIDR: ${LAN_CIDR:?set LAN_CIDR in traefik/.env}
+    command:
+      - --global.checknewversion=false
+      - --global.sendanonymoususage=false
+      - --log.level=INFO
+      - --accesslog=true
+      - --api.dashboard=true
+      - --providers.docker.endpoint=tcp://traefik-socket-proxy:2375
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=proxy
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.metrics.address=:8082
+      - --metrics.prometheus=true
+      - --metrics.prometheus.entrypoint=metrics
+    ports:
+      - "${LAN_IP}:80:80"
+      - "${LAN_IP}:443:443"
+    volumes:
+      - ./dynamic:/etc/traefik/dynamic:ro
+      - ./certs:/certs:ro
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - traefik-socket-proxy
+    networks:
+      - proxy
+      - homelab
+      - traefik-socket
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.middlewares=secure@file,dashboard-auth@file
+
+networks:
+  proxy:
+    external: true
+  homelab:
+    external: true
+  traefik-socket:
+    internal: true

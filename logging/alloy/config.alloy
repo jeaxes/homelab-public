@@ -1,0 +1,78 @@
+// ---------- Target: Loki ----------
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// ---------- 1) systemd journal (ssh, sudo, cron, kernel, ...) ----------
+loki.relabel "journal" {
+  forward_to = []
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  rule {
+    source_labels = ["__journal_syslog_identifier"]
+    target_label  = "syslog_identifier"
+  }
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+}
+
+loki.source.journal "journal" {
+  path          = "/var/log/journal"
+  max_age       = "12h"
+  relabel_rules = loki.relabel.journal.rules
+  labels        = { job = "journal", host = "homeserver" }
+  forward_to    = [loki.write.local.receiver]
+}
+
+// ---------- 2) Fail2ban log ----------
+local.file_match "fail2ban" {
+  path_targets = [{ "__path__" = "/host/var/log/fail2ban.log", job = "fail2ban", host = "homeserver" }]
+}
+
+loki.source.file "fail2ban" {
+  targets    = local.file_match.fail2ban.targets
+  forward_to = [loki.process.fail2ban.receiver]
+}
+
+loki.process "fail2ban" {
+  // "Ban 1.2.3.4" -> label action="Ban" (the IP is deliberately NOT a label: too many values)
+  stage.regex {
+    expression = `(?P<action>Ban|Unban|Found) (?P<ip>\d+\.\d+\.\d+\.\d+)`
+  }
+  stage.labels {
+    values = { action = "" }
+  }
+  forward_to = [loki.write.local.receiver]
+}
+
+// ---------- 3) Docker containers (read-only via socket proxy) ----------
+discovery.docker "containers" {
+  host = "tcp://alloy-socket-proxy:2375"
+}
+
+discovery.relabel "containers" {
+  targets = []
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "tcp://alloy-socket-proxy:2375"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = discovery.relabel.containers.rules
+  labels        = { job = "docker", host = "homeserver" }
+  forward_to    = [loki.write.local.receiver]
+}

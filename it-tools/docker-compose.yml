@@ -1,0 +1,18 @@
+services:
+  it-tools:
+    image: corentinth/it-tools@sha256:8b8128748339583ca951af03dfe02a9a4d7363f61a216226fc28030731a5a61f  # pinned 2026-09-30
+    container_name: it-tools
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.tools.rule=Host(`tools.${DOMAIN}`)
+      - traefik.http.routers.tools.entrypoints=websecure
+      - traefik.http.routers.tools.middlewares=secure@file
+      - traefik.http.services.tools.loadbalancer.server.port=80
+networks:
+  proxy:
+    external: true

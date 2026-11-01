@@ -1,0 +1,26 @@
+groups:
+  - name: security
+    rules:
+      - alert: Fail2banSperre
+        expr: 'sum by (host) (count_over_time({job="fail2ban", action="Ban"}[5m])) > 0'
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Fail2ban hat auf {{ $labels.host }} eine IP gesperrt'
+          description: 'Sperren in den letzten 5 Minuten: {{ $value }}. Details: Grafana → Explore → Loki → job=fail2ban'
+
+      - alert: VieleSSHFehlversuche
+        expr: 'sum by (host) (count_over_time({job="journal", unit="ssh.service"} |~ "(?i)invalid user|failed password|authentication failure" [5m])) > 10'
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Viele fehlgeschlagene SSH-Anmeldungen auf {{ $labels.host }}'
+          description: '{{ $value }} Fehlversuche in 5 Minuten – möglicher Brute-Force-Angriff.'
+
+      - alert: SudoFalschesPasswort
+        expr: 'sum by (host) (count_over_time({job="journal", syslog_identifier="sudo"} |= "incorrect password" [5m])) > 0'
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Falsches sudo-Passwort auf {{ $labels.host }}'
+          description: 'Jemand hat versucht, sudo mit falschem Passwort zu benutzen.'

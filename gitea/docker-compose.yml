@@ -1,0 +1,33 @@
+services:
+  gitea:
+    image: gitea/gitea:latest-rootless
+    container_name: gitea
+    restart: unless-stopped
+    environment:
+      GITEA__server__DOMAIN: gitea.${DOMAIN}
+      GITEA__server__ROOT_URL: https://gitea.${DOMAIN}/
+      GITEA__server__HTTP_PORT: 3000
+      GITEA__server__DISABLE_SSH: "true"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__service__REQUIRE_SIGNIN_VIEW: "true"
+      GITEA__actions__ENABLED: "true"
+    volumes:
+      - gitea_data:/var/lib/gitea
+      - gitea_config:/etc/gitea
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.gitea.rule=Host(`gitea.${DOMAIN}`)
+      - traefik.http.routers.gitea.entrypoints=websecure
+      - traefik.http.routers.gitea.middlewares=secure@file
+      - traefik.http.services.gitea.loadbalancer.server.port=3000
+volumes:
+  gitea_data:
+  gitea_config:
+networks:
+  proxy:
+    external: true

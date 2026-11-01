@@ -1,0 +1,3 @@
+homeserver:
+  host: dockerproxy
+  port: 2375

@@ -1,0 +1,66 @@
+services:
+  loki:
+    image: grafana/loki@sha256:0db216b630ae1f348a1584c67f3cead8b4c1fc839169a39501db664744158e28  # pinned 2026-09-30
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yml
+    volumes:
+      - ./loki:/etc/loki:ro
+      - loki_data:/loki
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - monitoring
+
+  alloy:
+    image: grafana/alloy@sha256:8ab871206bd2d8f89277f53abffee5f452a293980788d52f85fa183a87a505a4  # pinned 2026-09-30, version 24.04
+    container_name: alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - "127.0.0.1:12345:12345"
+    group_add:
+      - "999"     # systemd-journal: read the journal
+      - "4"   # adm: read /var/log/*
+    volumes:
+      - ./alloy:/etc/alloy:ro
+      - alloy_data:/var/lib/alloy/data
+      - /var/log/journal:/var/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/log:/host/var/log:ro
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - loki
+      - alloy-socket-proxy
+    networks:
+      - monitoring
+      - logsocket
+
+  alloy-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459  # pinned 2026-09-30, version v0.5.0
+    container_name: alloy-socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - logsocket
+
+volumes:
+  loki_data:
+  alloy_data:
+
+networks:
+  monitoring:
+    external: true
+  logsocket:
+    internal: true
