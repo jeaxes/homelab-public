@@ -1,6 +1,6 @@
 services:
   prometheus:
-    image: prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e  # pinned 2026-09-30
+    image: prom/prometheus@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06  # pinned 2026-09-30
     container_name: prometheus
     restart: unless-stopped
     command:
